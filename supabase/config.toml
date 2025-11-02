@@ -1,0 +1,4 @@
+project_id = "wjlybfshxpamzngalghv"
+
+[functions.approve-student-request]
+verify_jwt = true
