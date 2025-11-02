@@ -27,19 +27,34 @@ interface Comment {
 
 function VideoPlayer({ storagePath, lessonId }: { storagePath: string; lessonId: string }) {
   const [videoUrl, setVideoUrl] = useState<string>('');
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    async function getSignedUrl() {
-      const { data } = await supabase.storage
-        .from('lesson-videos')
-        .createSignedUrl(storagePath, 3600); // 1 hour expiration
+    async function getVideoUrl() {
+      try {
+        const { data } = supabase.storage
+          .from('lesson-videos')
+          .getPublicUrl(storagePath);
 
-      if (data?.signedUrl) {
-        setVideoUrl(data.signedUrl);
+        if (data?.publicUrl) {
+          setVideoUrl(data.publicUrl);
+        } else {
+          setError('Video URL not available');
+        }
+      } catch (err) {
+        setError('Failed to load video');
       }
     }
-    getSignedUrl();
+    getVideoUrl();
   }, [storagePath]);
+
+  if (error) {
+    return (
+      <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
 
   if (!videoUrl) {
     return (
