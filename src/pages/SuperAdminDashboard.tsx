@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Users, BookOpen, Plus, Trash2, UserPlus, ArrowLeft, Eye, ExternalLink } from 'lucide-react';
+import { Building2, Users, BookOpen, Plus, Trash2, UserPlus, ArrowLeft, Eye, ExternalLink, UserX } from 'lucide-react';
 import { AddDepartmentAdminDialog } from '@/components/AddDepartmentAdminDialog';
 import { deleteCourse } from '@/lib/courseManager';
 import { useNavigate as useRouterNavigate } from 'react-router-dom';
@@ -22,7 +22,7 @@ import {
   Department,
   getDepartmentById
 } from '@/lib/departmentManager';
-import { getAllUsers, UserProfile, getUsersByDepartment } from '@/lib/userManager';
+import { getAllUsers, UserProfile, getUsersByDepartment, deactivateUser } from '@/lib/userManager';
 import { getCourses, Course, getCoursesByDepartment } from '@/lib/courseManager';
 
 export default function SuperAdminDashboard() {
@@ -148,6 +148,22 @@ export default function SuperAdminDashboard() {
       toast({
         title: 'Error',
         description: 'Failed to delete course',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDeleteDepartmentAdmin = async (adminId: string, adminName: string) => {
+    if (!confirm(`Are you sure you want to delete department admin "${adminName}"?`)) return;
+
+    const success = await deactivateUser(adminId);
+    if (success) {
+      toast({ title: 'Department admin deleted successfully' });
+      loadData();
+    } else {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete department admin',
         variant: 'destructive'
       });
     }
@@ -558,6 +574,7 @@ export default function SuperAdminDashboard() {
                     <TableHead>Email</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -572,6 +589,15 @@ export default function SuperAdminDashboard() {
                           <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs">
                             {admin.is_active ? 'Active' : 'Inactive'}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteDepartmentAdmin(admin.id, admin.name)}
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

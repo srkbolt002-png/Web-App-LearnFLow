@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { mockCourses, mockUsers, Course } from '@/lib/mockData';
+import { mockUsers } from '@/lib/mockData';
 import { Users as UsersIcon, Clock, BookOpen } from 'lucide-react';
 import { getAvatarColor } from '@/lib/avatarColors';
 import { Badge } from '@/components/ui/badge';
 import { initializeCourseProgress, getCourseProgress } from '@/lib/progressManager';
+import { getEnrolledCourses, getCourses, Course } from '@/lib/courseManager';
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -16,32 +17,16 @@ export default function StudentDashboard() {
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('courses');
-    if (saved) {
-      setCourses(JSON.parse(saved));
-    } else {
-      localStorage.setItem('courses', JSON.stringify(mockCourses));
-      setCourses(mockCourses);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user && courses.length > 0) {
-      const enrolled = courses.filter(course => 
-        course.enrolledStudents.includes(user.id)
-      );
+    const loadData = async () => {
+      const [allCourses, enrolled] = await Promise.all([
+        getCourses(),
+        user ? getEnrolledCourses(user.id) : Promise.resolve([])
+      ]);
+      setCourses(allCourses);
       setEnrolledCourses(enrolled);
-      
-      // Initialize progress tracking for enrolled courses
-      enrolled.forEach(course => {
-        const existingProgress = getCourseProgress(user.id, course.id);
-        if (!existingProgress) {
-          const lessonIds = course.lessons.map(l => l.id);
-          initializeCourseProgress(user.id, course.id, lessonIds);
-        }
-      });
-    }
-  }, [user, courses]);
+    };
+    loadData();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
@@ -65,10 +50,6 @@ export default function StudentDashboard() {
               {enrolledCourses.map((course) => {
                 const instructor = mockUsers.find(u => u.id === course.instructorId);
                 const avatarColor = instructor ? getAvatarColor(instructor.name) : '';
-                const totalDuration = course.lessons.reduce((acc, lesson) => {
-                  const mins = parseInt(lesson.duration);
-                  return acc + (isNaN(mins) ? 0 : mins);
-                }, 0);
                 
                 return (
                   <Card 
@@ -86,7 +67,7 @@ export default function StudentDashboard() {
                       <div className="absolute top-4 right-4">
                         <Badge variant="secondary" className="bg-background/95 backdrop-blur-md shadow-lg border-0">
                           <Clock className="h-3 w-3 mr-1" />
-                          {course.lessons.length} lessons
+                          Course
                         </Badge>
                       </div>
                     </div>
@@ -110,19 +91,6 @@ export default function StudentDashboard() {
                     <CardContent className="space-y-4 pt-0">
                       <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{course.description}</p>
                       
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span className="flex items-center gap-2 font-medium">
-                          <UsersIcon className="h-4 w-4" />
-                          {course.enrolledStudents.length} students
-                        </span>
-                        {totalDuration > 0 && (
-                          <span className="flex items-center gap-2 font-medium">
-                            <Clock className="h-4 w-4" />
-                            {totalDuration} mins
-                          </span>
-                        )}
-                      </div>
-                      
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className="text-xs font-medium border-primary/30">
                           {course.category}
@@ -130,12 +98,12 @@ export default function StudentDashboard() {
                         <Badge 
                           variant="secondary" 
                           className={`text-xs capitalize font-medium ${
-                            course.difficulty === 'beginner' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' :
-                            course.difficulty === 'intermediate' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' :
+                            course.level === 'beginner' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' :
+                            course.level === 'intermediate' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' :
                             'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
                           } border`}
                         >
-                          {course.difficulty}
+                          {course.level}
                         </Badge>
                       </div>
                     </CardContent>
@@ -178,11 +146,7 @@ export default function StudentDashboard() {
             {courses.map((course) => {
               const instructor = mockUsers.find(u => u.id === course.instructorId);
               const avatarColor = instructor ? getAvatarColor(instructor.name) : '';
-              const totalDuration = course.lessons.reduce((acc, lesson) => {
-                const mins = parseInt(lesson.duration);
-                return acc + (isNaN(mins) ? 0 : mins);
-              }, 0);
-              const isEnrolled = user && course.enrolledStudents.includes(user.id);
+              const isEnrolled = enrolledCourses.some(ec => ec.id === course.id);
               
               return (
                 <Card 
@@ -205,7 +169,7 @@ export default function StudentDashboard() {
                       )}
                       <Badge variant="secondary" className="bg-background/95 backdrop-blur-md shadow-lg border-0">
                         <Clock className="h-3 w-3 mr-1" />
-                        {course.lessons.length} lessons
+                        Course
                       </Badge>
                     </div>
                   </div>
@@ -229,18 +193,14 @@ export default function StudentDashboard() {
                   <CardContent className="space-y-4 pt-0">
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{course.description}</p>
                     
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span className="flex items-center gap-2 font-medium">
-                        <UsersIcon className="h-4 w-4" />
-                        {course.enrolledStudents.length} students
-                      </span>
-                      {totalDuration > 0 && (
-                        <span className="flex items-center gap-2 font-medium">
-                          <Clock className="h-4 w-4" />
-                          {totalDuration} mins
-                        </span>
+                      {course.duration && (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span className="flex items-center gap-2 font-medium">
+                            <Clock className="h-4 w-4" />
+                            {course.duration}
+                          </span>
+                        </div>
                       )}
-                    </div>
                     
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs font-medium border-primary/30">
@@ -249,12 +209,12 @@ export default function StudentDashboard() {
                       <Badge 
                         variant="secondary" 
                         className={`text-xs capitalize font-medium ${
-                          course.difficulty === 'beginner' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' :
-                          course.difficulty === 'intermediate' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' :
+                          course.level === 'beginner' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' :
+                          course.level === 'intermediate' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' :
                           'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
                         } border`}
                       >
-                        {course.difficulty}
+                        {course.level}
                       </Badge>
                     </div>
                   </CardContent>

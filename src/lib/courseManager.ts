@@ -264,3 +264,15 @@ export const getCourseEnrollmentCount = async (courseId: string): Promise<number
 
   return count || 0;
 };
+
+export const unenrollFromCourse = async (courseId: string, studentId: string): Promise<boolean> => {
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('course_enrollments')
+    .delete()
+    .eq('course_id', courseId)
+    .eq('student_id', studentId);
+
+  return !error;
+};

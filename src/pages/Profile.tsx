@@ -7,11 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { Course, mockCourses } from '@/lib/mockData';
-import { BookOpen, Edit } from 'lucide-react';
+import { BookOpen, Edit, X } from 'lucide-react';
 import { getAvatarColor } from '@/lib/avatarColors';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { getEnrolledCourses, unenrollFromCourse, Course } from '@/lib/courseManager';
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -31,15 +31,37 @@ export default function Profile() {
       return;
     }
 
-    const courses = JSON.parse(localStorage.getItem('courses') || JSON.stringify(mockCourses));
-    const enrolled = courses.filter((c: Course) => c.enrolledStudents.includes(user.id));
-    setEnrolledCourses(enrolled);
+    loadEnrolledCourses();
   }, [user, navigate]);
+
+  const loadEnrolledCourses = async () => {
+    if (!user) return;
+    const enrolled = await getEnrolledCourses(user.id);
+    setEnrolledCourses(enrolled);
+  };
 
   const handleUpdateProfile = () => {
     updateUser(editForm);
     setShowEditDialog(false);
     toast({ title: 'Profile updated!' });
+  };
+
+  const handleUnenroll = async (courseId: string, courseTitle: string) => {
+    if (!user) return;
+    
+    if (!confirm(`Are you sure you want to unenroll from "${courseTitle}"?`)) return;
+
+    const success = await unenrollFromCourse(courseId, user.id);
+    if (success) {
+      toast({ title: 'Successfully unenrolled from course' });
+      loadEnrolledCourses();
+    } else {
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to unenroll from course',
+        variant: 'destructive'
+      });
+    }
   };
 
   if (!user) return null;
@@ -118,26 +140,31 @@ export default function Profile() {
                 {enrolledCourses.map((course) => (
                   <div
                     key={course.id}
-                    className="flex items-center gap-4 p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => navigate(`/course/${course.id}`)}
+                    className="flex items-center gap-4 p-4 border rounded-lg transition-colors"
                   >
                     <img
                       src={course.thumbnail}
                       alt={course.title}
-                      className="w-24 h-16 object-cover rounded"
+                      className="w-24 h-16 object-cover rounded cursor-pointer hover:opacity-80"
+                      onClick={() => navigate(`/course/${course.id}`)}
                     />
-                    <div className="flex-1">
+                    <div 
+                      className="flex-1 cursor-pointer"
+                      onClick={() => navigate(`/course/${course.id}`)}
+                    >
                       <h3 className="font-semibold">{course.title}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-1">
                         {course.description}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <BookOpen className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {course.lessons.length} lessons
-                        </span>
-                      </div>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleUnenroll(course.id, course.title)}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Unenroll
+                    </Button>
                   </div>
                 ))}
               </div>
