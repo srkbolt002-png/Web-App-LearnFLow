@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, User, LogOut, Menu, X } from 'lucide-react';
+import { GraduationCap, User, LogOut, Menu, X, Download } from 'lucide-react';
+import { APP_CONFIG } from '@/lib/appConfig';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { getAvatarColor } from '@/lib/avatarColors';
@@ -67,6 +68,14 @@ export function Navbar() {
                   Progress
                   {isActive('/student/progress') && <span className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary"></span>}
                 </Link>
+                <a 
+                  href={APP_CONFIG.androidApkUrl} 
+                  download={APP_CONFIG.apkFileName}
+                  className="font-medium smooth-transition text-foreground hover:text-primary flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download App
+                </a>
               </>}
             </>}
             {user.role === 'instructor' && <>
@@ -142,6 +151,15 @@ export function Navbar() {
                 <Link to="/student/progress" className={`px-4 py-2 rounded-md smooth-transition ${isActive('/student/progress') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} onClick={() => setMobileMenuOpen(false)}>
                   Progress
                 </Link>
+                <a 
+                  href={APP_CONFIG.androidApkUrl} 
+                  download={APP_CONFIG.apkFileName}
+                  className="px-4 py-2 rounded-md smooth-transition hover:bg-accent flex items-center gap-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Download className="h-4 w-4" />
+                  Download App
+                </a>
               </>}
             {user.role === 'instructor' && <>
                 <Link to="/instructor" className={`px-4 py-2 rounded-md smooth-transition ${isActive('/instructor') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} onClick={() => setMobileMenuOpen(false)}>
