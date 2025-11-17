@@ -1,6 +1,6 @@
 // Update this URL after uploading your APK to Supabase Storage or other hosting
 export const APP_CONFIG = {
-  androidApkUrl: '/LearnFlow-v1.0.0.apk', // APK file in public folder
+  androidApkUrl: 'https://wjlybfshxpamzngalghv.supabase.co/storage/v1/object/public/Apk/app-debug.apk',
   appVersion: '1.0.0',
-  apkFileName: 'LearnFlow-v1.0.0.apk'
+  apkFileName: 'app-debug.apk'
 };
